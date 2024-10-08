@@ -80,6 +80,16 @@ async fn question() -> Result<WorkflowsRunResponse> {
     Ok(result.unwrap())
 }
 
+fn extract_json_response(result: &WorkflowFinishedData) -> Option<Value> {
+    result.outputs.as_ref().and_then(|outputs| {
+        outputs.get("json response").and_then(|json_str| {
+            json_str.as_str().and_then(|str_value| {
+                serde_json::from_str(str_value).ok()
+            })
+        })
+    })
+}
+
 ///
 /// 
 /// this is where the new code starts from that parses the post request
@@ -105,22 +115,45 @@ struct ChoicesResponse {
 async fn choices(
     Json(input): Json<ChoicesRequest>,
 ) -> Json<ChoicesResponse> {
-    // we make our request to dify, passing the json we received
-    // we get our reply from dify
-    
-    // Example response
-    let mut life_tasks = HashMap::new();
-    life_tasks.insert("lifeTask1".to_string(), "Go grocery shopping".to_string());
+    let response = run_workflow_with_tasks(input.to_do_list, input.daily_schedule)
+        .await
+        .expect("error calling dify api:");
 
-    let mut work_tasks = HashMap::new();
-    work_tasks.insert("workTask1".to_string(), "Finish quarterly report".to_string());
-    work_tasks.insert("workTask2".to_string(), "Attend team meeting at 2 PM".to_string());
+    let json = extract_json_response(&response.data)
+        .expect("Failed to extract JSON response");
+
+    let life_tasks = json["lifeTasks"].as_object()
+        .expect("lifeTasks is not an object");
+    let work_tasks = json["workTasks"].as_object()
+        .expect("workTasks is not an object");
+
+    let mut life_tasks_map = HashMap::new();
+    let mut work_tasks_map = HashMap::new();
+
+    // Extract life tasks
+    for i in 1..=1 {
+        let key = format!("lifeTask{}", i);
+        let task = life_tasks.get(&key)
+            .and_then(Value::as_str)
+            .unwrap_or("(LLM generated empty task)")
+            .to_string();
+        life_tasks_map.insert(key, task);
+    }
+
+    // Extract work tasks
+    for i in 1..=2 {
+        let key = format!("workTask{}", i);
+        let task = work_tasks.get(&key)
+            .and_then(Value::as_str)
+            .unwrap_or("(LLM generated empty task)")
+            .to_string();
+        work_tasks_map.insert(key, task);
+    }
 
     Json(ChoicesResponse {
-        life_tasks,
-        work_tasks,
+        life_tasks: life_tasks_map,
+        work_tasks: work_tasks_map,
     })
-    // we want to parse the LLM generated json into exactly 3 choices
 }
 
 async fn run_workflow_with_tasks(to_do_list: String, daily_schedule: String) -> Result<WorkflowsRunResponse> {
