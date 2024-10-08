@@ -1,5 +1,5 @@
 use maud::{html, Markup, DOCTYPE};
-use axum::{Router, routing::get, Json};
+use axum::{Router, routing::get, Json, routing::post};
 use dify_client::{request, response::ChatMessagesResponse,  Client, Config};
 use dify_client::request::WorkflowsRunRequest;
 use std::time::Duration;
