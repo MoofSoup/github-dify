@@ -7,9 +7,10 @@ use dotenvy::dotenv;
 use std::env;
 
 async fn question() -> Result<ChatMessagesResponse> {
+    let api_key = env::var("DIFY_API_KEY").expect("DIFY_API_KEY must be set in the .env file");
     let config = Config {
         base_url: "https://api.dify.ai".into(),
-        api_key: "app-rAqpskPQ1sXE2qJcQOUHtROM".into(),
+        api_key: api_key,
         timeout: Duration::from_secs(60),
     };
     let client = Client::new_with_config(config);
