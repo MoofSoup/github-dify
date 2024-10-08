@@ -1,6 +1,6 @@
 use maud::{html, Markup, DOCTYPE};
 use axum::{Router, routing::get, Json, routing::post};
-use dify_client::{request, response::ChatMessagesResponse,  Client, Config};
+use dify_client::{request, response::ChatMessagesResponse,  Client, Config, response::WorkflowsRunResponse};
 use dify_client::request::WorkflowsRunRequest;
 use std::time::Duration;
 use anyhow::Result;
@@ -9,7 +9,7 @@ use std::env;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-async fn question() -> Result<ChatMessagesResponse> {
+async fn question() -> Result<WorkflowsRunResponse> {
     let api_key = env::var("DIFY_API_KEY").expect("DIFY_API_KEY must be set in the .env file");
     let config = Config {
         base_url: "https://api.dify.ai".into(),
@@ -19,17 +19,13 @@ async fn question() -> Result<ChatMessagesResponse> {
     let client = Client::new_with_config(config);
 
     // Use the client
-    let data = request::ChatMessagesRequest {
-        query: "What's the best City for tech? What's the best college for someone living there to pursue programming on a budget, who's just starting school? I would like community college options. Also, who can I network with on campus maximize my chances? What should I do while networking in the event that the economy is not conducive towards internships? Be specific.".into(),
-        user: "joe".into(),
-        ..Default::default()
-    };
+    
     let input_text:String =  "What's the best City for tech? What's the best college for someone living there to pursue programming on a budget, who's just starting school? I would like community college options. Also, who can I network with on campus maximize my chances? What should I do while networking in the event that the economy is not conducive towards internships? Be specific.".into();
     let mut input_map = HashMap::new();
     input_map.insert("meow".to_string(), input_text).expect("failed to insert into hashmap");
 
 
-    let meow = WorkflowsRunRequest {
+    let data = WorkflowsRunRequest {
         inputs: input_map,
         response_mode: request::ResponseMode::Blocking,
         user: "Moof".into(),
@@ -37,12 +33,19 @@ async fn question() -> Result<ChatMessagesResponse> {
 
     };
 
-    let result = client.api().chat_messages(data).await;
+    let result = client.api().workflows_run(data).await;
     Ok(result.unwrap())
 }
 
 async fn hello_world() -> Markup {
-    // let result = question().await.unwrap().answer;
+    let result = question().await.unwrap();
+    let output: String = match result.data.outputs {
+        Some(outputs) => {
+            // Assuming the output is a string. If it's more complex, you'll need to handle it accordingly.
+            outputs.get("result").and_then(|v| v.as_str()).unwrap_or("No output available").to_string()
+        },
+        None => "No output available".to_string(),
+    };
     html! {
         (DOCTYPE)
         html lang="en" data-theme="light" {
@@ -61,8 +64,8 @@ async fn hello_world() -> Markup {
                     }
                     section {
                         article {
-                            // p { (result) }
-                            p { "meow hey"}
+                            p { (output) }
+                            // p { "meow hey"}
                         }
                     }
                 }
