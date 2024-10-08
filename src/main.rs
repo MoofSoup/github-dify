@@ -94,7 +94,9 @@ async fn main() {
     let api_key = env::var("DIFY_API_KEY").expect("error getting DIFY_API_KEY ");
     // println!("api key is {}", api_key);
     // build our application with a single route
-    let app = Router::new().route("/", get(hello_world));
+    let app = Router::new()
+        .route("/", get(hello_world))
+        .route("/echo", post(echo));
 
     // run it with hyper on localhost:7878
     let listener = tokio::net::TcpListener::bind("0.0.0.0:7878").await.unwrap();
