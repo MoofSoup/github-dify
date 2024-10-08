@@ -1,6 +1,6 @@
 use maud::{html, Markup, DOCTYPE};
 use axum::{Router, routing::get, Json, routing::post};
-use dify_client::{request, response::ChatMessagesResponse,  Client, Config, response::WorkflowsRunResponse};
+use dify_client::{request, response::ChatMessagesResponse,  Client, Config, response::WorkflowsRunResponse, response::WorkflowFinishedData};
 use dify_client::request::WorkflowsRunRequest;
 use std::time::Duration;
 use anyhow::Result;
@@ -8,6 +8,48 @@ use dotenvy::dotenv;
 use std::env;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+// use serde_json::Value as JsonValue;
+
+fn debug_workflow_result(result: &WorkflowFinishedData) -> String {
+    let mut debug_info = String::new();
+
+    debug_info.push_str(&format!("Status: {:?}\n", result.status));
+    debug_info.push_str(&format!("Error: {:?}\n", result.error));
+    debug_info.push_str(&format!("Total tokens: {:?}\n", result.total_tokens));
+    debug_info.push_str(&format!("Elapsed time: {:?}\n", result.elapsed_time));
+    debug_info.push_str(&format!("Total steps: {}\n", result.total_steps));
+    debug_info.push_str(&format!("Created at: {}\n", result.created_at));
+    debug_info.push_str(&format!("Finished at: {}\n", result.finished_at));
+
+    debug_info.push_str("\nOutputs:\n");
+    match &result.outputs {
+        Some(outputs) => {
+            debug_info.push_str(&format!("Raw outputs: {:?}\n", outputs));
+            debug_info.push_str("Available keys in outputs:\n");
+            /*for key in outputs.keys() {
+                debug_info.push_str(&format!("- {}\n", key));
+            }*/
+            if let Some(result_value) = outputs.get("result") {
+                debug_info.push_str(&format!("\nValue of 'result' key: {:?}\n", result_value));
+                if let Some(result_str) = result_value.as_str() {
+                    debug_info.push_str(&format!("'result' as string: {}\n", result_str));
+                } else {
+                    debug_info.push_str("'result' is not a string\n");
+                }
+            } else {
+                debug_info.push_str("No 'result' key found in outputs\n");
+            }
+        },
+        None => debug_info.push_str("No outputs available\n"),
+    }
+
+    debug_info.push_str("\nExtra fields:\n");
+    for (key, value) in &result.extra {
+        debug_info.push_str(&format!("{}: {:?}\n", key, value));
+    }
+
+    debug_info
+}
 
 async fn question() -> Result<WorkflowsRunResponse> {
     let api_key = env::var("DIFY_API_KEY").expect("DIFY_API_KEY must be set in the .env file");
@@ -22,7 +64,7 @@ async fn question() -> Result<WorkflowsRunResponse> {
     
     let input_text:String =  "What's the best City for tech? What's the best college for someone living there to pursue programming on a budget, who's just starting school? I would like community college options. Also, who can I network with on campus maximize my chances? What should I do while networking in the event that the economy is not conducive towards internships? Be specific.".into();
     let mut input_map = HashMap::new();
-    input_map.insert("meow".to_string(), input_text).expect("failed to insert into hashmap");
+    input_map.insert("meow".to_string(), input_text);
 
 
     let data = WorkflowsRunRequest {
@@ -39,6 +81,10 @@ async fn question() -> Result<WorkflowsRunResponse> {
 
 async fn hello_world() -> Markup {
     let result = question().await.unwrap();
+
+    let debug_output = debug_workflow_result(&result.data);
+    println!("Debug Information:\n{}", debug_output);
+
     let output: String = match result.data.outputs {
         Some(outputs) => {
             // Assuming the output is a string. If it's more complex, you'll need to handle it accordingly.
