@@ -1,10 +1,13 @@
 use maud::{html, Markup, DOCTYPE};
-use axum::{Router, routing::get};
-use dify_client::{request, response::ChatMessagesResponse, Client, Config};
+use axum::{Router, routing::get, Json};
+use dify_client::{request, response::ChatMessagesResponse,  Client, Config};
+use dify_client::request::WorkflowsRunRequest;
 use std::time::Duration;
 use anyhow::Result;
 use dotenvy::dotenv;
 use std::env;
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
 async fn question() -> Result<ChatMessagesResponse> {
     let api_key = env::var("DIFY_API_KEY").expect("DIFY_API_KEY must be set in the .env file");
@@ -21,12 +24,25 @@ async fn question() -> Result<ChatMessagesResponse> {
         user: "joe".into(),
         ..Default::default()
     };
+    let input_text:String =  "What's the best City for tech? What's the best college for someone living there to pursue programming on a budget, who's just starting school? I would like community college options. Also, who can I network with on campus maximize my chances? What should I do while networking in the event that the economy is not conducive towards internships? Be specific.".into();
+    let mut input_map = HashMap::new();
+    input_map.insert("meow".to_string(), input_text).expect("failed to insert into hashmap");
+
+
+    let meow = WorkflowsRunRequest {
+        inputs: input_map,
+        response_mode: request::ResponseMode::Blocking,
+        user: "Moof".into(),
+        files:Vec::new(),
+
+    };
+
     let result = client.api().chat_messages(data).await;
     Ok(result.unwrap())
 }
 
 async fn hello_world() -> Markup {
-    let result = question().await.unwrap().answer;
+    // let result = question().await.unwrap().answer;
     html! {
         (DOCTYPE)
         html lang="en" data-theme="light" {
@@ -45,7 +61,8 @@ async fn hello_world() -> Markup {
                     }
                     section {
                         article {
-                            p { (result) }
+                            // p { (result) }
+                            p { "meow hey"}
                         }
                     }
                 }
@@ -53,10 +70,29 @@ async fn hello_world() -> Markup {
         }
     }
 }
+// api end choices that gets a post request, I parse, pass it to dify, send it back to front end.
+
+#[derive(Deserialize, Serialize)]
+struct EchoRequest {
+    message: String,
+}
+
+#[derive(Serialize)]
+struct EchoResponse {
+    message: String,
+}
+
+async fn echo(Json(payload): Json<EchoRequest>) -> Json<EchoResponse> {
+    Json(EchoResponse {
+        message: payload.message,
+    })
+}
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    let api_key = env::var("DIFY_API_KEY").expect("error getting DIFY_API_KEY ");
+    // println!("api key is {}", api_key);
     // build our application with a single route
     let app = Router::new().route("/", get(hello_world));
 
