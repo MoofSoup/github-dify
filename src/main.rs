@@ -3,6 +3,8 @@ use axum::{Router, routing::get};
 use dify_client::{request, response::ChatMessagesResponse, Client, Config};
 use std::time::Duration;
 use anyhow::Result;
+use dotenvy::dotenv;
+use std::env;
 
 async fn question() -> Result<ChatMessagesResponse> {
     let config = Config {
@@ -53,6 +55,7 @@ async fn hello_world() -> Markup {
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     // build our application with a single route
     let app = Router::new().route("/", get(hello_world));
 
