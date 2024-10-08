@@ -148,6 +148,7 @@ async fn run_workflow_with_tasks(to_do_list: String, daily_schedule: String) -> 
 }
 
 async fn hello_world() -> Markup {
+    /*
     let result = question().await.unwrap();
 
     let debug_output = debug_workflow_result(&result.data);
@@ -170,6 +171,7 @@ async fn hello_world() -> Markup {
         },
         None => "No outputs available".to_string(),
     };
+    */
     html! {
         (DOCTYPE)
         html lang="en" data-theme="light" {
@@ -188,8 +190,8 @@ async fn hello_world() -> Markup {
                     }
                     section {
                         article {
-                            p { (output) }
-                            // p { "meow hey"}
+                            // p { (output) }
+                            p { "meow hey"}
                         }
                     }
                 }
@@ -228,7 +230,8 @@ async fn main() {
     // build our application with a single route
     let app = Router::new()
         .route("/", get(hello_world))
-        .route("/echo", post(echo));
+        .route("/echo", post(echo))
+        .route("/choices", post(choices));
 
     // run it with hyper on localhost:7878
     let listener = tokio::net::TcpListener::bind("0.0.0.0:7878").await.unwrap();
