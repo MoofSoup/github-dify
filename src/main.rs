@@ -80,6 +80,73 @@ async fn question() -> Result<WorkflowsRunResponse> {
     Ok(result.unwrap())
 }
 
+///
+/// 
+/// this is where the new code starts from that parses the post request
+/// 
+/// 
+/// 
+/// 
+///
+#[derive(Deserialize)]
+struct ChoicesRequest {
+    #[serde(rename = "To Do List")]
+    to_do_list: String,
+    #[serde(rename = "Daily Schedule")]
+    daily_schedule: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ChoicesResponse {
+    life_tasks: HashMap<String, String>,
+    work_tasks: HashMap<String, String>,
+}
+
+async fn choices(
+    Json(input): Json<ChoicesRequest>,
+) -> Json<ChoicesResponse> {
+    // we make our request to dify, passing the json we received
+    // we get our reply from dify
+    
+    // Example response
+    let mut life_tasks = HashMap::new();
+    life_tasks.insert("lifeTask1".to_string(), "Go grocery shopping".to_string());
+
+    let mut work_tasks = HashMap::new();
+    work_tasks.insert("workTask1".to_string(), "Finish quarterly report".to_string());
+    work_tasks.insert("workTask2".to_string(), "Attend team meeting at 2 PM".to_string());
+
+    Json(ChoicesResponse {
+        life_tasks,
+        work_tasks,
+    })
+    // we want to parse the LLM generated json into exactly 3 choices
+}
+
+async fn run_workflow_with_tasks(to_do_list: String, daily_schedule: String) -> Result<WorkflowsRunResponse> {
+    let api_key = env::var("DIFY_API_KEY").expect("DIFY_API_KEY must be set in the .env file");
+    let config = Config {
+        base_url: "https://api.dify.ai".into(),
+        api_key,
+        timeout: Duration::from_secs(60),
+    };
+    let client = Client::new_with_config(config);
+
+    let mut input_map = HashMap::new();
+    input_map.insert("to_do_list".to_string(), to_do_list);
+    input_map.insert("daily_schedule".to_string(), daily_schedule);
+
+    let data = WorkflowsRunRequest {
+        inputs: input_map,
+        response_mode: request::ResponseMode::Blocking,
+        user: "Moof".into(),
+        files: Vec::new(),
+    };
+
+    let result = client.api().workflows_run(data).await?;
+    Ok(result)
+}
+
 async fn hello_world() -> Markup {
     let result = question().await.unwrap();
 
@@ -151,6 +218,11 @@ async fn echo(Json(payload): Json<EchoRequest>) -> Json<EchoResponse> {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    let schedule: String = "".to_string();
+    let todo_list: String = "".to_string();
+    let result = run_workflow_with_tasks(schedule, todo_list).await.expect("blah");
+    println!("{}", debug_workflow_result(&result.data));
+
     let api_key = env::var("DIFY_API_KEY").expect("error getting DIFY_API_KEY ");
     // println!("api key is {}", api_key);
     // build our application with a single route
