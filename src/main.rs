@@ -218,9 +218,9 @@ async fn echo(Json(payload): Json<EchoRequest>) -> Json<EchoResponse> {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let schedule: String = "".to_string();
-    let todo_list: String = "".to_string();
-    let result = run_workflow_with_tasks(schedule, todo_list).await.expect("blah");
+    let schedule: String = "9:00 AM - Team meeting\n11:00 AM - Coding session\n2:00 PM - Lunch break\n3:00 PM - Final testing".to_string();
+    let todo_list: String = "1. Finish project presentation\n2. Debug code\n3. Prepare demo".to_string();
+    let result = run_workflow_with_tasks(todo_list, schedule).await.expect("blah");
     println!("{}", debug_workflow_result(&result.data));
 
     let api_key = env::var("DIFY_API_KEY").expect("error getting DIFY_API_KEY ");
