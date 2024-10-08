@@ -8,6 +8,7 @@ use dotenvy::dotenv;
 use std::env;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 // use serde_json::Value as JsonValue;
 
 fn debug_workflow_result(result: &WorkflowFinishedData) -> String {
@@ -84,13 +85,23 @@ async fn hello_world() -> Markup {
 
     let debug_output = debug_workflow_result(&result.data);
     println!("Debug Information:\n{}", debug_output);
-
+    /*
     let output: String = match result.data.outputs {
         Some(outputs) => {
             // Assuming the output is a string. If it's more complex, you'll need to handle it accordingly.
             outputs.get("result").and_then(|v| v.as_str()).unwrap_or("No output available").to_string()
         },
         None => "No output available".to_string(),
+    }; */
+    let output: String = match &result.data.outputs {
+        Some(outputs) => {
+            outputs.get("json response")
+                .and_then(|v| v.as_str())
+                .and_then(|json_str| serde_json::from_str::<Value>(json_str).ok())
+                .map(|json| json.to_string())
+                .unwrap_or_else(|| "Failed to parse JSON response".to_string())
+        },
+        None => "No outputs available".to_string(),
     };
     html! {
         (DOCTYPE)
