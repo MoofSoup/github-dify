@@ -120,6 +120,7 @@ dependencies = [
  "dotenvy",
  "maud",
  "serde",
+ "serde_json",
  "tokio",
  "tracing-subscriber",
 ]
