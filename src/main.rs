@@ -263,8 +263,9 @@ async fn main() {
     // build our application with a single route
     let app = Router::new()
         .route("/", get(hello_world))
-        .route("/echo", post(echo))
-        .route("/choices", post(choices));
+        .route("/choices", post(choices))
+        .route("/echo", post(echo));
+        
 
     // run it with hyper on localhost:7878
     let listener = tokio::net::TcpListener::bind("0.0.0.0:7878").await.unwrap();
